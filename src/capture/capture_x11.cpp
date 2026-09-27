@@ -4,6 +4,9 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <cstring>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 bool CaptureX11::init(int) {
     dpy_  = XOpenDisplay(nullptr);
