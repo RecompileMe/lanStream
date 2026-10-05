@@ -2,7 +2,9 @@
 #include <cstdint>
 
 #pragma pack(push, 1)
-struct PacketHeader {
+
+struct PacketHeader
+{
     uint32_t magic;          // 0x4C534C41 "LSLA"
     uint32_t frame_id;
     uint64_t timestamp_us;

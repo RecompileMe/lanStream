@@ -1,14 +1,16 @@
 #pragma once
 #include "encoder.hpp"
-extern "C" {
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 #include <libswscale/swscale.h>
 }
 
-class EncoderFFmpeg : public IEncoder {
+class EncoderFFmpeg : public IEncoder
+{
 public:
-    ~EncoderFFmpeg() override { cleanup(); }
+    ~EncoderFFmpeg() override;
     bool init(int width, int height,
               int fps = 60, int bitrate_kbps = 8000) override;
     void encode(RawFramePtr frame, PacketCallback cb) override;

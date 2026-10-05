@@ -1,14 +1,16 @@
 // decoder_ffmpeg.hpp
 #pragma once
 #include "decoder.hpp"
-extern "C" {
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 }
 
-class DecoderFFmpeg : public IDecoder {
+class DecoderFFmpeg : public IDecoder
+{
 public:
-    ~DecoderFFmpeg() override { cleanup(); }
+    ~DecoderFFmpeg() override;
     bool init()                                         override;
     void decode(EncodedPacketPtr pkt, FrameCallback cb) override;
 private:

@@ -7,7 +7,8 @@
 
 // For frame transfer from the decoding thread to the main rendering thread; drops old frames when full to maintain low latency.
 template<typename T>
-class BlockingQueue {
+class BlockingQueue
+{
     std::queue<T>           q_;
     std::mutex              mtx_;
     std::condition_variable cv_;
