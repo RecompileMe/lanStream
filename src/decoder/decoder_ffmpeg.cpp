@@ -23,7 +23,7 @@ bool DecoderFFmpeg::init() {
     ctx_ = avcodec_alloc_context3(codec);
     ctx_->flags  |= AV_CODEC_FLAG_LOW_DELAY;
     ctx_->flags2 |= AV_CODEC_FLAG2_FAST;
-    ctx_->thread_count = 1;   // 单线程最低延迟
+    ctx_->thread_count = 1;   // Lowest single-thread latency
 
     if (avcodec_open2(ctx_, codec, nullptr) < 0) {
         std::cerr << "[decoder] avcodec_open2 failed\n"; return false;

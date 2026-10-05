@@ -20,7 +20,7 @@ bool UdpReceiver::init(uint16_t port) {
     sock_ = (int)::socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_ < 0) return false;
 
-    // 接收超时，防止 stop() 后 recv 阻塞
+    // Set a receive timeout to prevent recv from blocking after stop()
 #ifdef _WIN32
     DWORD tv = 100;
     setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
@@ -67,7 +67,7 @@ void UdpReceiver::recv_loop(PacketCallback cb) {
         PacketHeader hdr{};
         memcpy(&hdr, buf, sizeof(hdr));
         if (hdr.magic != PACKET_MAGIC) continue;
-        // 丢弃过期帧，保证低延迟
+        // Discard expired frames to ensure low latency
         if (last_id_ != UINT32_MAX && hdr.frame_id <= last_id_) continue;
 
         auto& a = asm_[hdr.frame_id];

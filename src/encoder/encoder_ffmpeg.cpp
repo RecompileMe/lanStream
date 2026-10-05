@@ -5,7 +5,7 @@
 bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps) {
     width_ = width; height_ = height;
 
-    // 按平台优先选择硬编，最终 fallback 到 libx264
+    // Prioritize hardware encoding based on the platform, with a final fallback to libx264.
     const char* names[] = {
 #ifdef PLATFORM_WINDOWS
         "h264_nvenc", "h264_qsv", "h264_amf",
@@ -30,7 +30,7 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps) {
     ctx_->time_base   = {1, fps};
     ctx_->framerate   = {fps, 1};
     ctx_->bit_rate    = bitrate_kbps * 1000LL;
-    ctx_->gop_size    = 1;           // 全 I-frame，最低延迟
+    ctx_->gop_size    = 1;           // All I-frames, lowest latency
     ctx_->max_b_frames = 0;
     ctx_->pix_fmt     = AV_PIX_FMT_YUV420P;
 

@@ -13,7 +13,7 @@ static std::atomic<bool> g_run{true};
 static void on_signal(int) { g_run = false; }
 
 int main(int argc, char* argv[]) {
-    // 用法: receiver [port=5000]
+    // Usage: receiver [port=5000]
     uint16_t port = argc > 1 ? (uint16_t)std::stoi(argv[1]) : 5000;
     signal(SIGINT,  on_signal);
     signal(SIGTERM, on_signal);
@@ -26,18 +26,18 @@ int main(int argc, char* argv[]) {
     DecoderFFmpeg decoder;
     if (!decoder.init()) { std::cerr << "decoder init failed\n"; return 1; }
 
-    // 解码线程 → 主渲染线程的帧队列
-    // 容量减小到 2，降低队列尾部排队带来的延迟
+    // Frame queue from the decoding thread to the main rendering thread
+    // Capacity reduced to 2 to minimize latency caused by queuing at the end of the queue
     BlockingQueue<RawFramePtr> fq(2);
 
     udp.start([&](EncodedPacketPtr pkt) {
         decoder.decode(std::move(pkt), [&](RawFramePtr f) {
-            // 解码完成的原始帧推入队列
+            // Push the decoded raw frame into the queue
             fq.push(f);
         });
     });
 
-    // 渲染必须在主线程（SDL2 要求）
+    // Rendering must take place on the main thread (required by SDL2)
     RendererSDL renderer;
     bool inited = false;
     uint32_t cnt = 0;
@@ -45,21 +45,21 @@ int main(int argc, char* argv[]) {
     while (g_run) {
         if (!renderer.poll_events()) break;
 
-        // 尝试在 10ms 内取到一帧
+        // Attempt to capture a frame within 10ms
         auto opt = fq.pop(1);
         if (!opt) {
-            // 当前没有新帧，继续处理事件
+            // No new frame; continue processing events.
             continue;
         }
 
-        // 先拿到一帧
+        // Get a frame first
         RawFramePtr latest = *opt;
 
-        // 为了降低延迟：如果队列中还有更多帧，则把旧帧“吃掉”，只保留最新的那一帧
-        // 这里受限于 BlockingQueue 只有阻塞 pop(timeout) 接口，
-        // 无法完全非阻塞，但可以用一个很小的超时多尝试几次。
+        // To reduce latency: If there are additional frames in the queue, discard the older ones and retain only the latest frame.
+        // Since BlockingQueue only provides a blocking pop(timeout) method,
+        // a fully non-blocking approach isn't possible; however, we can attempt the operation multiple times using a very short timeout.
         while (true) {
-            auto opt_more = fq.pop(0);  // 如果你的 BlockingQueue 不允许 0，可改成 1~2ms
+            auto opt_more = fq.pop(0);  // If your BlockingQueue does not allow 0, you can change it to 1–2 ms.
             if (!opt_more) break;
             latest = *opt_more;
         }

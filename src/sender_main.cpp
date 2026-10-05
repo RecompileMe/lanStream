@@ -12,7 +12,7 @@ static std::atomic<bool> g_run{true};
 static void on_signal(int) { g_run = false; }
 
 int main(int argc, char* argv[]) {
-    // 用法: sender <副机IP> [port=5000] [fps=60] [bitrate_kbps=8000]
+    // Usage: sender <remote_IP> [port=5000] [fps=60] [bitrate_kbps=8000]
     std::string ip  = argc > 1 ? argv[1] : "127.0.0.1";
     uint16_t port   = argc > 2 ? (uint16_t)std::stoi(argv[2]) : 5000;
     int fps         = argc > 3 ? std::stoi(argv[3]) : 120;
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     capture->start([&](RawFramePtr frame) {
         if (!g_run) return;
         encoder.encode(std::move(frame), [&](EncodedPacketPtr pkt) {
-            // 每 60 帧打印一次延迟（采集→编码完成）
+            // Print latency (capture to encoding completion) every 60 frames
             if (pkt->frame_id % 60 == 0) {
                 double ms = (now_us() - pkt->timestamp_us) / 1000.0;
                 std::cout << "frame=" << pkt->frame_id

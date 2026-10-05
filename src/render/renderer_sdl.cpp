@@ -23,7 +23,7 @@ bool RendererSDL::init(int w, int h, const char* title) {
 
 bool RendererSDL::render(RawFramePtr f) {
     if (!f) return true;
-    // 分辨率变化时重建 texture
+    // Rebuild the texture when the resolution changes
     if (f->width != w_ || f->height != h_) {
         w_ = f->width; h_ = f->height;
         SDL_DestroyTexture(texture_);
