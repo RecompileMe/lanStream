@@ -38,7 +38,7 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps)
 
         if (open_codec(codec, fps, bitrate_kbps))
         {
-            std::cout << "[encoder] using " << name.c_str();
+            std::cout << "[encoder] using " << name;
             if (use_hw_)
                 std::cout << " (GPU)" << std::endl;
             else
