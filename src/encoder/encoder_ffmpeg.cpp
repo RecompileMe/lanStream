@@ -38,11 +38,14 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps)
 
         if (open_codec(codec, fps, bitrate_kbps))
         {
-            std::cout << "[encoder] using " << name.c_str()
-                      << (use_hw_ ? " (GPU)" : " (CPU)") << "\n";
+            std::cout << "[encoder] using " << name.c_str();
+            if (use_hw_)
+                std::cout << " (GPU)" << std::endl;
+            else
+                std::cout << " (CPU)" << std::endl;
             return true;
         }
-        std::cerr << "[encoder] " << name.c_str() << " not usable, trying next\n";
+        std::cerr << "[encoder] " << name.c_str() << " not usable, trying next" << std::endl;
         cleanup();
     }
     std::cerr << "[encoder] no usable encoder" << std::endl;
@@ -65,7 +68,7 @@ bool EncoderFFmpeg::setup_vaapi()
     if (ret < 0)
     {
         std::cerr << "[encoder] cannot open VAAPI device " << dev << ": "
-                  << av_err(ret) << "\n";
+                  << av_err(ret) << std::endl;
         return false;
     }
 

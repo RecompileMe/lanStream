@@ -8,7 +8,8 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
-class EncoderFFmpeg : public IEncoder {
+class EncoderFFmpeg : public IEncoder
+{
 public:
     ~EncoderFFmpeg() override;
     bool init(int width, int height, int fps, int bitrate_kbps) override;
