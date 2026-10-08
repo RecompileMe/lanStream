@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     if (argc > 3)
         fps = std::stoi(argv[3]);
     else
-        fps = 120;
+        fps = 60;
 
     if (argc > 4)
         bitrate = std::stoi(argv[4]);
