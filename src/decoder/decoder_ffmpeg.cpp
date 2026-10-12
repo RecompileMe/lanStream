@@ -78,7 +78,7 @@ bool DecoderFFmpeg::setup_vaapi()
         if (env && *env)
             return env;
         else
-            return "/dev/dri/renderD128";
+            return "/dev/dri/renderD129";
     }();
 
     const int ret = av_hwdevice_ctx_create(&hw_dev_, AV_HWDEVICE_TYPE_VAAPI,

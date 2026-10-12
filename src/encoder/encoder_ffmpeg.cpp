@@ -61,7 +61,7 @@ bool EncoderFFmpeg::setup_vaapi()
     const char* dev = std::getenv("LANSTREAM_VAAPI_DEVICE");
 
     if (!dev || !*dev)
-        dev = "/dev/dri/renderD128";
+        dev = "/dev/dri/renderD129";
 
     int ret = av_hwdevice_ctx_create(&hw_dev_, AV_HWDEVICE_TYPE_VAAPI,
                                      dev, nullptr, 0);
