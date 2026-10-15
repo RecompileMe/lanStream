@@ -10,19 +10,19 @@ if(APPLE)
 
     add_library(libavcodec SHARED IMPORTED)
     set_target_properties(libavcodec PROPERTIES
-            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/libavcodec.dylib"
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/mac_intel/libavcodec.dylib"
             INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
             )
 
     add_library(libavutil SHARED IMPORTED)
     set_target_properties(libavutil PROPERTIES
-            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/libavutil.dylib"
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/mac_intel/libavutil.dylib"
             INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
             )
 
     add_library(libswscale SHARED IMPORTED)
     set_target_properties(libswscale PROPERTIES
-            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/libswscale.dylib"
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/mac_intel/libswscale.dylib"
             INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
             )
     # Set variables so the rest of your script works seamlessly

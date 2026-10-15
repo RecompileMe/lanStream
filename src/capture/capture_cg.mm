@@ -45,46 +45,46 @@ namespace {
         __block bool done = false;
 
         [SCShareableContent getShareableContentWithCompletionHandler:
-         ^(SCShareableContent *content, NSError *error) {
-            if (error) {
-                NSLog(@"Failed to retrieve shared content: %@", error);
-                done = true;
-                return;
-            }
+                ^(SCShareableContent *content, NSError *error) {
+                    if (error) {
+                        NSLog(@"Failed to retrieve shared content: %@", error);
+                        done = true;
+                        return;
+                    }
 
-            for (SCDisplay* display in content.displays) {
-                if (counter == index) {
-                    CFRetain((__bridge CFTypeRef)display);
-                    targetDisplay = display;
-                    break;
-                }
-                counter++;
-            }
-            done = true;
-        }];
+                    for (SCDisplay* display in content.displays) {
+                        if (counter == index) {
+                            CFRetain((__bridge CFTypeRef)display);
+                            targetDisplay = display;
+                            break;
+                        }
+                        counter++;
+                    }
+                    done = true;
+                }];
 
         NSDate* timeout = [NSDate dateWithTimeIntervalSinceNow:1.0];
         while (!done && [[NSDate date] compare:timeout] == NSOrderedAscending) {
             [[NSRunLoop currentRunLoop]
-             runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                    runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
         }
 
         if (!targetDisplay && counter > 0) {
             done = false;
             [SCShareableContent getShareableContentWithCompletionHandler:
-             ^(SCShareableContent *content, NSError *error) {
-                if (!error && content.displays.count > 0) {
-                    SCDisplay* first = content.displays.firstObject;
-                    CFRetain((__bridge CFTypeRef)first);
-                    targetDisplay = first;
-                }
-                done = true;
-            }];
+                    ^(SCShareableContent *content, NSError *error) {
+                        if (!error && content.displays.count > 0) {
+                            SCDisplay* first = content.displays.firstObject;
+                            CFRetain((__bridge CFTypeRef)first);
+                            targetDisplay = first;
+                        }
+                        done = true;
+                    }];
 
             timeout = [NSDate dateWithTimeIntervalSinceNow:1.0];
             while (!done && [[NSDate date] compare:timeout] == NSOrderedAscending) {
                 [[NSRunLoop currentRunLoop]
-                 runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                        runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
             }
         }
 
@@ -104,7 +104,6 @@ bool CaptureCG::init(int display_index) {
 
     display_index_ = display_index;
 
-    // Here, display.width/height are used merely as placeholders for "logical dimensions"; the actual pixel values ​​are calculated in start() using contentRect.
     SCDisplay* display = findDisplayByIndex(display_index_);
     if (!display) {
         NSLog(@"Monitor not found index=%d", display_index_);
@@ -161,13 +160,12 @@ bool CaptureCG::start(FrameCallback cb) {
                 return;
             }
 
-            // 2. Create stream configuration
+            // 2. Create stream configuration (macOS 12.3 compatible)
             impl->config = [[SCStreamConfiguration alloc] init];
             impl->config.width  = (size_t)width_;
             impl->config.height = (size_t)height_;
             impl->config.scalesToFit = NO;
-            impl->config.preservesAspectRatio = YES;
-            impl->config.queueDepth = 2;          // Low latency [web:27]
+            impl->config.queueDepth = 2;
             impl->config.showsCursor = YES;
             impl->config.pixelFormat = kCVPixelFormatType_32BGRA;
             impl->config.colorSpaceName = kCGColorSpaceSRGB;
@@ -177,7 +175,7 @@ bool CaptureCG::start(FrameCallback cb) {
             Class streamClass = NSClassFromString(@"SCStream");
             Class filterClass = NSClassFromString(@"SCContentFilter");
             if (!streamClass || !filterClass) {
-                NSLog(@"The current system does not support this. ScreenCaptureKit");
+                NSLog(@"The current system does not support ScreenCaptureKit.");
                 running_.store(false);
                 return;
             }
@@ -186,43 +184,43 @@ bool CaptureCG::start(FrameCallback cb) {
             __block NSArray<SCRunningApplication*>* allApps = nil;
             __block bool appsReady = false;
             [SCShareableContent getShareableContentWithCompletionHandler:
-             ^(SCShareableContent* content, NSError* err) {
-                if (!err) {
-                    allApps = content.applications;
-                } else {
-                    NSLog(@"Failed to retrieve the application list: %@", err);
-                }
-                appsReady = true;
-            }];
+                    ^(SCShareableContent* content, NSError* err) {
+                        if (!err) {
+                            allApps = content.applications;
+                        } else {
+                            NSLog(@"Failed to retrieve the application list: %@", err);
+                        }
+                        appsReady = true;
+                    }];
             NSDate* appTimeout = [NSDate dateWithTimeIntervalSinceNow:2.0];
             while (!appsReady && [[NSDate date] compare:appTimeout] == NSOrderedAscending) {
                 [[NSRunLoop currentRunLoop]
-                 runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+                        runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
             }
 
             SEL selWithApps =
-                NSSelectorFromString(@"initWithDisplay:includingApplications:exceptingWindows:");
+                    NSSelectorFromString(@"initWithDisplay:includingApplications:exceptingWindows:");
             SEL selExcludeApps =
-                NSSelectorFromString(@"initWithDisplay:excludingApplications:exceptingWindows:");
+                    NSSelectorFromString(@"initWithDisplay:excludingApplications:exceptingWindows:");
             SEL selExcludeWindows =
-                NSSelectorFromString(@"initWithDisplay:excludingWindows:");
+                    NSSelectorFromString(@"initWithDisplay:excludingWindows:");
 
             id filterAlloc = ((id (*)(Class, SEL))objc_msgSend)(
-                filterClass, sel_registerName("alloc"));
+                    filterClass, sel_registerName("alloc"));
             id contentFilter = nil;
 
             if (allApps && [filterClass instancesRespondToSelector:selWithApps]) {
                 contentFilter = ((id (*)(id, SEL, id, id, id))objc_msgSend)(
-                    filterAlloc, selWithApps, impl->selectedDisplay, allApps, @[]);
+                        filterAlloc, selWithApps, impl->selectedDisplay, allApps, @[]);
             } else if ([filterClass instancesRespondToSelector:selExcludeApps]) {
                 NSArray<SCRunningApplication*>* emptyApps = @[];
                 NSArray<SCWindow*>* emptyWindows = @[];
                 contentFilter = ((id (*)(id, SEL, id, id, id))objc_msgSend)(
-                    filterAlloc, selExcludeApps, impl->selectedDisplay,
-                    emptyApps, emptyWindows);
+                        filterAlloc, selExcludeApps, impl->selectedDisplay,
+                        emptyApps, emptyWindows);
             } else if ([filterClass instancesRespondToSelector:selExcludeWindows]) {
                 contentFilter = ((id (*)(id, SEL, id, id))objc_msgSend)(
-                    filterAlloc, selExcludeWindows, impl->selectedDisplay, @[]);
+                        filterAlloc, selExcludeWindows, impl->selectedDisplay, @[]);
             }
 
             if (!contentFilter) {
@@ -231,40 +229,18 @@ bool CaptureCG::start(FrameCallback cb) {
                 return;
             }
 
-            // 4. Set the actual pixel resolution using contentRect × pointPixelScale [web:20][web:23]
-            SCContentFilter *filter = (SCContentFilter *)contentFilter;
-            CGFloat scale = filter.pointPixelScale;
-            CGRect rect = filter.contentRect;
-            size_t pixelWidth  = (size_t)(CGRectGetWidth(rect)  * scale);
-            size_t pixelHeight = (size_t)(CGRectGetHeight(rect) * scale);
+            NSLog(@"SCStream capture size: %zux%zu", impl->config.width, impl->config.height);
 
-            impl->config.width  = pixelWidth;
-            impl->config.height = pixelHeight;
-            impl->config.scalesToFit = NO;
-            impl->config.preservesAspectRatio = YES;
-
-            NSLog(@"SCStream capture size: %zux%zu (scale=%.2f, rect=%.0fx%.0f)",
-                  pixelWidth, pixelHeight,
-                  scale,
-                  CGRectGetWidth(rect), CGRectGetHeight(rect));
-
-            if ([impl->config respondsToSelector:@selector(setCaptureResolution:)]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability"
-                impl->config.captureResolution = SCCaptureResolutionBest;
-#pragma clang diagnostic pop
-            }
-
-            // 5. Create SCStream
+            // 4. Create SCStream
             SEL selInitFilterNoError =
-                NSSelectorFromString(@"initWithFilter:configuration:delegate:");
+                    NSSelectorFromString(@"initWithFilter:configuration:delegate:");
             id alloced = ((id (*)(Class, SEL))objc_msgSend)(
-                streamClass, sel_registerName("alloc"));
+                    streamClass, sel_registerName("alloc"));
             id streamObj = nil;
 
             if ([streamClass instancesRespondToSelector:selInitFilterNoError]) {
                 streamObj = ((id (*)(id, SEL, id, id, id))objc_msgSend)(
-                    alloced, selInitFilterNoError, contentFilter, impl->config, nil);
+                        alloced, selInitFilterNoError, contentFilter, impl->config, nil);
             } else {
                 NSLog(@"SCStream initialization method is unavailable.");
             }
@@ -276,7 +252,7 @@ bool CaptureCG::start(FrameCallback cb) {
                 return;
             }
 
-            // 6. Add video output
+            // 5. Add video output
             StreamOutputHandler* output = [[StreamOutputHandler alloc] init];
             __block Impl* implPtr = impl.get();
             output.captureHandler = ^(CMSampleBufferRef sampleBuffer,
@@ -285,11 +261,11 @@ bool CaptureCG::start(FrameCallback cb) {
                 if (type != SCStreamOutputTypeScreen) return;
 
                 CVImageBufferRef imageBuffer =
-                    CMSampleBufferGetImageBuffer(sampleBuffer);
+                        CMSampleBufferGetImageBuffer(sampleBuffer);
                 if (!imageBuffer) return;
 
                 OSType pixelFormat =
-                    CVPixelBufferGetPixelFormatType(imageBuffer);
+                        CVPixelBufferGetPixelFormatType(imageBuffer);
                 if (pixelFormat != kCVPixelFormatType_32BGRA) {
                     NSLog(@"Unsupported pixel format: %u", (unsigned int)pixelFormat);
                     return;
@@ -316,7 +292,7 @@ bool CaptureCG::start(FrameCallback cb) {
                     memcpy(frame->data.data(), baseAddress, dataSize);
 
                     if (cb_ && !frame->data.empty()) {
-                        cb_(std::move(frame));   // Place encoding and sending in an external thread.
+                        cb_(std::move(frame));
                     }
                 }
 
@@ -326,51 +302,48 @@ bool CaptureCG::start(FrameCallback cb) {
 
             error = nil;
             dispatch_queue_t queue =
-                dispatch_queue_create("capture.queue", DISPATCH_QUEUE_SERIAL);
+                    dispatch_queue_create("capture.queue", DISPATCH_QUEUE_SERIAL);
             BOOL success = [impl->stream addStreamOutput:output
                                                     type:SCStreamOutputTypeScreen
-                                    sampleHandlerQueue:queue
-                                                 error:&error];
+                                      sampleHandlerQueue:queue
+                                                   error:&error];
             if (!success) {
                 NSLog(@"Failed to add stream output: %@", error);
                 running_.store(false);
                 return;
             }
 
-            // 7. Start capturing
+            // 6. Start capturing
             [impl->stream startCaptureWithCompletionHandler:
-            ^(NSError* _Nullable err) {
-                if (err) {
-                    NSLog(@"Failed to start capture: %@", err);
-                    running_.store(false);
-                } else {
-                    NSLog(@"Screen capture started, stream=%p, pixel dimensions: %zux%zu",
-                            (__bridge void*)implPtr->stream,
-                            implPtr->config.width, implPtr->config.height);
+                    ^(NSError* _Nullable err) {
+                        if (err) {
+                            NSLog(@"Failed to start capture: %@", err);
+                            running_.store(false);
+                        } else {
+                            NSLog(@"Screen capture started, stream=%p", (__bridge void*)implPtr->stream);
+                        }
+                    }];
 
-                }
-            }];
-
-            // 8. Run the message loop
+            // 7. Run the message loop
             NSRunLoop* runLoop = [NSRunLoop currentRunLoop];
             while (running_.load()) {
                 @autoreleasepool {
                     [runLoop runUntilDate:
-                     [NSDate dateWithTimeIntervalSinceNow:0.016]];
+                            [NSDate dateWithTimeIntervalSinceNow:0.016]];
                 }
             }
 
-            // 9. Cleanup
+            // 8. Cleanup
             NSLog(@"Stop capturing...");
             if (impl->stream) {
                 [impl->stream stopCaptureWithCompletionHandler:
-                 ^(NSError* _Nullable err) {
-                    if (err) {
-                        NSLog(@"Error while stopping capture: %@", err);
-                    } else {
-                        NSLog(@"Capture stopped");
-                    }
-                }];
+                        ^(NSError* _Nullable err) {
+                            if (err) {
+                                NSLog(@"Error while stopping capture: %@", err);
+                            } else {
+                                NSLog(@"Capture stopped");
+                            }
+                        }];
                 impl->stream = nil;
             }
             if (impl->selectedDisplay) {
