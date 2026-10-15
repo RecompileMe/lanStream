@@ -3,6 +3,7 @@
 #include "decoder.hpp"
 extern "C"
 {
+#include <libavutil/error.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/hwcontext.h>
 #include <libswscale/swscale.h>

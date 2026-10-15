@@ -2,6 +2,7 @@
 #include "encoder.hpp"
 extern "C"
 {
+#include <libavutil/error.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 #include <libavutil/hwcontext.h>
