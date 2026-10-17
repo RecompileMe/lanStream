@@ -13,7 +13,7 @@
 #  include <unistd.h>
 #endif
 
-bool UdpReceiver::init(uint16_t& port, std::string& address)
+bool UdpReceiver::init(uint16_t& port)
 {
 #ifdef _WIN32
     WSADATA wd; WSAStartup(MAKEWORD(2,2), &wd);
@@ -37,8 +37,8 @@ bool UdpReceiver::init(uint16_t& port, std::string& address)
     sockaddr_in addr{};
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(port);
-    //addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_addr.s_addr = inet_addr(address.c_str());
+    addr.sin_addr.s_addr = INADDR_ANY;
+    //addr.sin_addr.s_addr = inet_addr(address.c_str());
     if (::bind(sock_, (sockaddr*)&addr, sizeof(addr)) < 0)
     {
         std::cerr << "[udp_receiver] bind failed" << std::endl;

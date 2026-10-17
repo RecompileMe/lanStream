@@ -12,24 +12,21 @@
 static std::atomic<bool> g_run{true};
 static void on_signal(int) { g_run = false; }
 
-void start_streaming(int& argc, const std::vector<std::string>& args)
+void start_streaming(std::string& str_port)
 {
-    std::vector<std::string>::const_iterator itr;
-    itr = args.cbegin();
-    std::string address = *itr;
-    itr++; //moving to the next argument
-    uint16_t port = std::stoul(*itr);
+
+    uint16_t port = std::stoi(str_port);
     UdpReceiver udp;
     DecoderFFmpeg decoder;
 
     signal(SIGINT,  on_signal);
     signal(SIGTERM, on_signal);
 
-    bool is_udp_initialized = udp.init(port, address);
+    bool is_udp_initialized = udp.init(port);
     bool is_decoder_initialized = decoder.init();
 
-    if (is_udp_initialized && is_decoder_initialized)
-            std::cout << "Receiver: " << address << ":" << port << std::endl;
+    if (is_udp_initialized || is_decoder_initialized)
+            std::cout << "port = " << port << std::endl;
     else
     {
         std::cerr << "udp init failed. [status]: " << is_udp_initialized << std::endl;
@@ -104,17 +101,15 @@ void start_streaming(int& argc, const std::vector<std::string>& args)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3)
+    if (argc != 2)
     {
-        std::cout << "Usage: ./receiver <address> <port>" << std::endl;
+        std::cout << "Usage: ./receiver <port>" << std::endl;
         return -1;
     }
     else
     {
-        std::vector<std::string> args{};
-        while (*++argv)
-            args.push_back(*argv);
-        start_streaming(argc, args);
+        std::string port = *++argv;
+        start_streaming(port);
         return 0;
     }
 }
