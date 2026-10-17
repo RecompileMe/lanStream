@@ -12,33 +12,29 @@
 static std::atomic<bool> g_run{true};
 static void on_signal(int) { g_run = false; }
 
-int main(int argc, char **argv)
+void start_streaming(int& argc, const std::vector<std::string>& args)
 {
-    // Usage: receiver [port=5000]
-    uint16_t port{};
+    std::vector<std::string>::const_iterator itr;
+    itr = args.cbegin();
+    std::string address = *itr;
+    itr++; //moving to the next argument
+    uint16_t port = std::stoul(*itr);
     UdpReceiver udp;
     DecoderFFmpeg decoder;
 
     signal(SIGINT,  on_signal);
     signal(SIGTERM, on_signal);
 
-    if (argc > 1)
-        port = (uint16_t)std::stoi(argv[1]);
+    bool is_udp_initialized = udp.init(port, address);
+    bool is_decoder_initialized = decoder.init();
+
+    if (is_udp_initialized && is_decoder_initialized)
+            std::cout << "Receiver: " << address << ":" << port << std::endl;
     else
-        port = 5000;
-
-    std::cout << "Receiver: port=" << port << std::endl;
-
-    if (!udp.init(port))
     {
-        std::cerr << "udp init failed" << std::endl;
-        return 1;
-    }
-
-    if (!decoder.init())
-    {
-        std::cerr << "decoder init failed" << std::endl;
-        return 1;
+        std::cerr << "udp init failed. [status]: " << is_udp_initialized << std::endl;
+        std::cerr << "decoder init failed. [status]: " << is_decoder_initialized << std::endl;
+        return;
     }
 
     // Frame queue from the decoding thread to the main rendering thread
@@ -46,13 +42,13 @@ int main(int argc, char **argv)
     BlockingQueue<RawFramePtr> fq(2);
 
     udp.start([&](EncodedPacketPtr pkt)
-    {
-        decoder.decode(std::move(pkt), [&](RawFramePtr f)
-        {
-            // Push the decoded raw frame into the queue
-            fq.push(f);
-        });
-    });
+              {
+                  decoder.decode(std::move(pkt), [&](RawFramePtr f)
+                  {
+                      // Push the decoded raw frame into the queue
+                      fq.push(f);
+                  });
+              });
 
     // Rendering must take place on the main thread (required by SDL2)
     RendererSDL renderer;
@@ -104,5 +100,21 @@ int main(int argc, char **argv)
     udp.stop();
     fq.close();
     std::cout << "receiver stopped." << std::endl;
-    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 3)
+    {
+        std::cout << "Usage: ./receiver <address> <port>" << std::endl;
+        return -1;
+    }
+    else
+    {
+        std::vector<std::string> args{};
+        while (*++argv)
+            args.push_back(*argv);
+        start_streaming(argc, args);
+        return 0;
+    }
 }

@@ -13,7 +13,7 @@ class UdpReceiver
 public:
     using PacketCallback = std::function<void(EncodedPacketPtr)>;
     ~UdpReceiver();
-    bool init(uint16_t port);
+    bool init(uint16_t& port, std::string& address);
     bool start(PacketCallback cb);
     void stop();
 private:
