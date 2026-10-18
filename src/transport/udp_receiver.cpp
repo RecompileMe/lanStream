@@ -94,8 +94,6 @@ void UdpReceiver::recv_loop(PacketCallback cb)
 
         PacketHeader hdr{};
         memcpy(&hdr, buf, sizeof(hdr));
-        if (hdr.magic != PACKET_MAGIC)
-            continue;
         // Discard expired frames to ensure low latency
         if (last_id_ != UINT32_MAX && hdr.frame_id <= last_id_)
             continue;

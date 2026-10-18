@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # DYLIBS on Mac need to have the right search path set before linking
 if(APPLE)
     enable_language(OBJCXX)
-    set(CMAKE_OBJCXX_STANDARD 23)
-
     add_library(libavcodec SHARED IMPORTED)
     set_target_properties(libavcodec PROPERTIES
             IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/mac_intel/libavcodec.dylib"
@@ -28,19 +26,40 @@ if(APPLE)
     # Set variables so the rest of your script works seamlessly
     set(FFMPEG_INCS "${PROJECT_SOURCE_DIR}/inc")
     set(FFMPEG_LIBS libavcodec libavutil libswscale)
+elseif (UNIX AND NOT APPLE)
+    add_library(libavcodec SHARED IMPORTED)
+    set_target_properties(libavcodec PROPERTIES
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/linux/libavcodec.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
+            )
+
+    add_library(libavutil SHARED IMPORTED)
+    set_target_properties(libavutil PROPERTIES
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/linux/libavutil.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
+            )
+
+    add_library(libswscale SHARED IMPORTED)
+    set_target_properties(libswscale PROPERTIES
+            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/linux/libswscale.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
+            )
+    # Set variables so the rest of your script works seamlessly
+    set(FFMPEG_INCS "${PROJECT_SOURCE_DIR}/inc")
+    set(FFMPEG_LIBS libavcodec libavutil libswscale)
 endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 
-if(UNIX AND NOT APPLE)
-pkg_check_modules(AVCODEC  REQUIRED libavcodec)
-pkg_check_modules(AVUTIL   REQUIRED libavutil)
-pkg_check_modules(SWSCALE  REQUIRED libswscale)
-set(FFMPEG_INCS ${AVCODEC_INCLUDE_DIRS} ${AVUTIL_INCLUDE_DIRS} ${SWSCALE_INCLUDE_DIRS})
-set(FFMPEG_LIBS ${AVCODEC_LIBRARIES}    ${AVUTIL_LIBRARIES}    ${SWSCALE_LIBRARIES})
-endif()
+#if(UNIX AND NOT APPLE)
+#pkg_check_modules(AVCODEC  REQUIRED libavcodec)
+#pkg_check_modules(AVUTIL   REQUIRED libavutil)
+#pkg_check_modules(SWSCALE  REQUIRED libswscale)
+#set(FFMPEG_INCS ${AVCODEC_INCLUDE_DIRS} ${AVUTIL_INCLUDE_DIRS} ${SWSCALE_INCLUDE_DIRS})
+#set(FFMPEG_LIBS ${AVCODEC_LIBRARIES}    ${AVUTIL_LIBRARIES}    ${SWSCALE_LIBRARIES})
+#endif()
 
 if(AVCODEC_LIBRARY_DIRS)
     link_directories(${AVCODEC_LIBRARY_DIRS})

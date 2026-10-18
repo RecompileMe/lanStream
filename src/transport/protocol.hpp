@@ -5,7 +5,6 @@
 
 struct PacketHeader
 {
-    uint32_t magic;          // 0x4C534C41 "LSLA"
     uint32_t frame_id;
     uint64_t timestamp_us;
     uint16_t chunk_index;    // Current shard index
@@ -16,6 +15,5 @@ struct PacketHeader
 };
 #pragma pack(pop)
 
-static constexpr uint32_t PACKET_MAGIC = 0x4C534C41u;
 static constexpr int      UDP_MTU      = 1400;
 static constexpr int      MAX_PAYLOAD  = UDP_MTU - (int)sizeof(PacketHeader);
