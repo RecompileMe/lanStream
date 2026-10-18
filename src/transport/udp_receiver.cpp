@@ -22,7 +22,7 @@ bool UdpReceiver::init(uint16_t& port)
     if (sock_ < 0)
         return false;
 
-    // Set a receiving timeout to prevent recv from blocking after stop()
+    // Set a receive timeout to prevent recv from blocking after stop()
 #ifdef _WIN32
     DWORD tv = 100;
     setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
@@ -38,7 +38,6 @@ bool UdpReceiver::init(uint16_t& port)
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(port);
     addr.sin_addr.s_addr = INADDR_ANY;
-    //addr.sin_addr.s_addr = inet_addr(address.c_str());
     if (::bind(sock_, (sockaddr*)&addr, sizeof(addr)) < 0)
     {
         std::cerr << "[udp_receiver] bind failed" << std::endl;
@@ -94,6 +93,8 @@ void UdpReceiver::recv_loop(PacketCallback cb)
 
         PacketHeader hdr{};
         memcpy(&hdr, buf, sizeof(hdr));
+        if (hdr.magic != PACKET_MAGIC)
+            continue;
         // Discard expired frames to ensure low latency
         if (last_id_ != UINT32_MAX && hdr.frame_id <= last_id_)
             continue;
