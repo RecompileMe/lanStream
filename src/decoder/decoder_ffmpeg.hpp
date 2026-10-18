@@ -1,6 +1,8 @@
 // decoder_ffmpeg.hpp
 #pragma once
 #include "decoder.hpp"
+#include <cstdint>
+#include <string>
 extern "C"
 {
 #include <libavutil/error.h>
@@ -9,23 +11,37 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+// How a decoder candidate gets its pictures out of the GPU.
+enum class DecKind
+{
+    Software,      // plain "h264" decoder on the CPU
+    Native,        // named hardware decoder that returns CPU frames itself (h264_cuvid, h264_qsv)
+    Vaapi,         // "h264" + VAAPI hwaccel: frames are GPU surfaces that must be downloaded
+    VideoToolbox   // "h264" + VideoToolbox hwaccel (macOS): same download step as VAAPI
+};
+
 class DecoderFFmpeg : public IDecoder {
 public:
     ~DecoderFFmpeg() override;
     bool init()                                         override;
     void decode(EncodedPacketPtr pkt, FrameCallback cb) override;
 private:
-    bool open_codec(const AVCodec* codec);
-    bool setup_vaapi();
+    bool open_codec(const AVCodec* codec, DecKind kind);
+    // Create the hardware device and make the decoder output `pix_fmt` surfaces.
+    bool setup_hwaccel(AVHWDeviceType type, const char* device, AVPixelFormat pix_fmt);
     void cleanup();
 
     AVCodecContext* ctx_         = nullptr;
-    AVFrame*        avf_         = nullptr;   // decoder output (a GPU surface while VAAPI is active)
-    AVFrame*        sw_frame_    = nullptr;   // CPU copy of that GPU surface (VAAPI only)
+    AVFrame*        avf_         = nullptr;   // decoder output (a GPU surface while a hwaccel is active)
+    AVFrame*        sw_frame_    = nullptr;   // CPU copy of that GPU surface (hwaccel only)
     AVPacket*       pkt_         = nullptr;
-    AVBufferRef*    hw_dev_      = nullptr;   // VAAPI device (VAAPI only)
+    AVBufferRef*    hw_dev_      = nullptr;   // hwaccel device (VAAPI / VideoToolbox only)
     SwsContext*     sws_         = nullptr;
     int             sw_ = 0, sh_ = 0;
-    bool            use_hw_      = false;
+
+    DecKind         kind_        = DecKind::Software;
+    AVPixelFormat   hw_pix_fmt_  = AV_PIX_FMT_NONE;  // surface format of the active hwaccel
+    std::string     label_;                          // which candidate won, for the log
+    std::string     vaapi_node_;                     // Intel render node from detect_gpus()
     bool            path_logged_ = false;
 };
