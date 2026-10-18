@@ -1,25 +1,26 @@
 /*
  * Copyright (c) 2014 Vittorio Giovara <vittorio.giovara@gmail.com>
  *
- * This file is part of Libav.
+ * This file is part of FFmpeg.
  *
- * Libav is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * Libav is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with Libav; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
  * @file
+ * @ingroup lavu_video_display
  * Display matrix
  */
 
@@ -29,15 +30,9 @@
 #include <stdint.h>
 
 /**
- * @addtogroup lavu_video
- * @{
- *
  * @defgroup lavu_video_display Display transformation matrix functions
- * @{
- */
-
-/**
- * @addtogroup lavu_video_display
+ * @ingroup lavu_video
+ *
  * The display transformation matrix specifies an affine transformation that
  * should be applied to video frames for correct presentation. It is compatible
  * with the matrices stored in the ISO/IEC 14496-12 container format.
@@ -71,6 +66,8 @@
  *   q' = (b * p + d * q + y) / z;
  *   z  =  u * p + v * q + w
  * @endcode
+ *
+ * @{
  */
 
 /**
@@ -87,11 +84,11 @@
 double av_display_rotation_get(const int32_t matrix[9]);
 
 /**
- * Initialize a transformation matrix describing a pure counterclockwise
+ * Initialize a transformation matrix describing a pure clockwise
  * rotation by the specified angle (in degrees).
  *
- * @param matrix an allocated transformation matrix (will be fully overwritten
- *               by this function)
+ * @param[out] matrix a transformation matrix (will be fully overwritten
+ *                    by this function)
  * @param angle rotation angle in degrees.
  */
 void av_display_rotation_set(int32_t matrix[9], double angle);
@@ -99,14 +96,13 @@ void av_display_rotation_set(int32_t matrix[9], double angle);
 /**
  * Flip the input matrix horizontally and/or vertically.
  *
- * @param matrix an allocated transformation matrix
+ * @param[in,out] matrix a transformation matrix
  * @param hflip whether the matrix should be flipped horizontally
  * @param vflip whether the matrix should be flipped vertically
  */
 void av_display_matrix_flip(int32_t matrix[9], int hflip, int vflip);
 
 /**
- * @}
  * @}
  */
 

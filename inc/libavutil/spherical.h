@@ -1,25 +1,26 @@
 /*
  * Copyright (c) 2016 Vittorio Giovara <vittorio.giovara@gmail.com>
  *
- * This file is part of Libav.
+ * This file is part of FFmpeg.
  *
- * Libav is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * Libav is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with Libav; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /**
  * @file
+ * @ingroup lavu_video_spherical
  * Spherical video
  */
 
@@ -30,19 +31,14 @@
 #include <stdint.h>
 
 /**
- * @addtogroup lavu_video
- * @{
- *
  * @defgroup lavu_video_spherical Spherical video mapping
- * @{
- */
-
-/**
- * @addtogroup lavu_video_spherical
+ * @ingroup lavu_video
+ *
  * A spherical video file contains surfaces that need to be mapped onto a
  * sphere. Depending on how the frame was converted, a different distortion
  * transformation or surface recomposition function needs to be applied before
  * the video should be mapped and displayed.
+ * @{
  */
 
 /**
@@ -70,6 +66,28 @@ enum AVSphericalProjection {
      * the position of the current video in a larger surface.
      */
     AV_SPHERICAL_EQUIRECTANGULAR_TILE,
+
+    /**
+     * Video frame displays as a 180 degree equirectangular projection.
+     */
+    AV_SPHERICAL_HALF_EQUIRECTANGULAR,
+
+    /**
+     * Video frame displays on a flat, rectangular 2D surface.
+     */
+    AV_SPHERICAL_RECTILINEAR,
+
+    /**
+     * Fisheye projection (Apple).
+     * See: https://developer.apple.com/documentation/coremedia/cmprojectiontype/fisheye
+     */
+    AV_SPHERICAL_FISHEYE,
+
+    /**
+     * Parametric Immersive projection (Apple).
+     * See: https://developer.apple.com/documentation/coremedia/cmprojectiontype/parametricimmersive
+     */
+    AV_SPHERICAL_PARAMETRIC_IMMERSIVE,
 };
 
 /**
@@ -202,7 +220,7 @@ AVSphericalMapping *av_spherical_alloc(size_t *size);
  * @param right  Pixels from the right edge.
  * @param bottom Pixels from the bottom edge.
  */
-void av_spherical_tile_bounds(AVSphericalMapping *map,
+void av_spherical_tile_bounds(const AVSphericalMapping *map,
                               size_t width, size_t height,
                               size_t *left, size_t *top,
                               size_t *right, size_t *bottom);
@@ -221,11 +239,10 @@ const char *av_spherical_projection_name(enum AVSphericalProjection projection);
  *
  * @param name The input string.
  *
- * @return The AVSphericalProjection value, or AVERROR if not found.
+ * @return The AVSphericalProjection value, or -1 if not found.
  */
 int av_spherical_from_name(const char *name);
 /**
- * @}
  * @}
  */
 

@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # DYLIBS on Mac need to have the right search path set before linking
 if(APPLE)
     enable_language(OBJCXX)
+    find_library(VIDEOTOOLBOX_FRAMEWORK VideoToolbox REQUIRED)
     add_library(libavcodec SHARED IMPORTED)
     set_target_properties(libavcodec PROPERTIES
             IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/mac_intel/libavcodec.dylib"
@@ -23,9 +24,10 @@ if(APPLE)
             IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/mac_intel/libswscale.dylib"
             INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
             )
+
     # Set variables so the rest of your script works seamlessly
     set(FFMPEG_INCS "${PROJECT_SOURCE_DIR}/inc")
-    set(FFMPEG_LIBS libavcodec libavutil libswscale)
+    set(FFMPEG_LIBS libavcodec libavutil libswscale ${VIDEOTOOLBOX_FRAMEWORK})
 endif()
 
 find_package(PkgConfig REQUIRED)

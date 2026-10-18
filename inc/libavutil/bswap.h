@@ -1,20 +1,20 @@
 /*
  * copyright (c) 2006 Michael Niedermayer <michaelni@gmx.at>
  *
- * This file is part of Libav.
+ * This file is part of FFmpeg.
  *
- * Libav is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * Libav is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with Libav; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
@@ -34,16 +34,10 @@
 
 #include "config.h"
 
-#if   ARCH_AARCH64
-#   include "aarch64/bswap.h"
-#elif ARCH_ARM
+#if ARCH_ARM
 #   include "arm/bswap.h"
-#elif ARCH_AVR32
-#   include "avr32/bswap.h"
-#elif ARCH_BFIN
-#   include "bfin/bswap.h"
-#elif ARCH_SH4
-#   include "sh4/bswap.h"
+#elif ARCH_RISCV
+#   include "riscv/bswap.h"
 #elif ARCH_X86
 #   include "x86/bswap.h"
 #endif
@@ -74,7 +68,7 @@ static av_always_inline av_const uint32_t av_bswap32(uint32_t x)
 #ifndef av_bswap64
 static inline uint64_t av_const av_bswap64(uint64_t x)
 {
-    return (uint64_t)av_bswap32(x) << 32 | av_bswap32(x >> 32);
+    return (uint64_t)av_bswap32((uint32_t)x) << 32 | av_bswap32((uint32_t)(x >> 32));
 }
 #endif
 

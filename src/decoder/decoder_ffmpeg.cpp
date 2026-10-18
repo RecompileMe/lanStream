@@ -5,9 +5,6 @@
 #include <vector>
 #include "decoder_ffmpeg.hpp"
 #include "encoder/gpu_detect.hpp"   // shared with the encoder (src/ is on the include path)
-#ifndef AV_ERROR_MAX_STRING_SIZE
-#define AV_ERROR_MAX_STRING_SIZE 64
-#endif
 
 namespace {
 

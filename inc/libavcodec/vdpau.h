@@ -4,20 +4,20 @@
  *
  * Copyright (C) 2008 NVIDIA
  *
- * This file is part of Libav.
+ * This file is part of FFmpeg.
  *
- * Libav is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
  *
- * Libav is distributed in the hope that it will be useful,
+ * FFmpeg is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with Libav; if not, write to the Free Software
+ * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
@@ -39,7 +39,7 @@
  * - VDPAU decoding
  * - VDPAU presentation
  *
- * The VDPAU decoding module parses all headers using Libav
+ * The VDPAU decoding module parses all headers using FFmpeg
  * parsing mechanisms and uses VDPAU for the actual decoding.
  *
  * As per the current implementation, the actual decoding
@@ -51,23 +51,29 @@
 
 #include <vdpau/vdpau.h>
 
+#include "libavutil/avconfig.h"
 #include "libavutil/attributes.h"
 
 #include "avcodec.h"
-#include "version.h"
+
+struct AVCodecContext;
+struct AVFrame;
+
+typedef int (*AVVDPAU_Render2)(struct AVCodecContext *, struct AVFrame *,
+                               const VdpPictureInfo *, uint32_t,
+                               const VdpBitstreamBuffer *);
 
 /**
  * This structure is used to share data between the libavcodec library and
  * the client video application.
- * The user shall zero-allocate the structure and make it available as
- * AVCodecContext.hwaccel_context. Members can be set by the user once
+ * This structure will be allocated and stored in AVCodecContext.hwaccel_context
+ * by av_vdpau_bind_context(). Members can be set by the user once
  * during initialization or through each AVCodecContext.get_buffer()
  * function call. In any case, they must be valid prior to calling
  * decoding functions.
  *
  * The size of this structure is not a part of the public ABI and must not
- * be used outside of libavcodec. Use av_vdpau_alloc_context() to allocate an
- * AVVDPAUContext.
+ * be used outside of libavcodec.
  */
 typedef struct AVVDPAUContext {
     /**
@@ -83,6 +89,8 @@ typedef struct AVVDPAUContext {
      * Set by the user.
      */
     VdpDecoderRender *render;
+
+    AVVDPAU_Render2 render2;
 } AVVDPAUContext;
 
 /**
@@ -125,31 +133,6 @@ int av_vdpau_bind_context(AVCodecContext *avctx, VdpDevice device,
 int av_vdpau_get_surface_parameters(AVCodecContext *avctx, VdpChromaType *type,
                                     uint32_t *width, uint32_t *height);
 
-/**
- * Allocate an AVVDPAUContext.
- *
- * @return Newly-allocated AVVDPAUContext or NULL on failure.
- */
-AVVDPAUContext *av_vdpau_alloc_context(void);
-
-#if FF_API_VDPAU_PROFILE
-/**
- * Get a decoder profile that should be used for initializing a VDPAU decoder.
- * Should be called from the AVCodecContext.get_format() callback.
- *
- * @deprecated Use av_vdpau_bind_context() instead.
- *
- * @param avctx the codec context being used for decoding the stream
- * @param profile a pointer into which the result will be written on success.
- *                The contents of profile are undefined if this function returns
- *                an error.
- *
- * @return 0 on success (non-negative), a negative AVERROR on failure.
- */
-attribute_deprecated
-int av_vdpau_get_profile(AVCodecContext *avctx, VdpDecoderProfile *profile);
-#endif
-
-/* @}*/
+/** @} */
 
 #endif /* AVCODEC_VDPAU_H */
