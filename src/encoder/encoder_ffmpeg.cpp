@@ -20,11 +20,19 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps) {
 
     // ---- 1. What hardware is there? -------------------------------------
     const GpuInfo gpu = detect_gpus();
+#ifdef PLATFORM_MACOS
+    // CHANGED: on macOS there is no per-vendor encoder to pick. VideoToolbox is
+    // the single API in front of Apple Silicon, Intel Quick Sync and AMD GPUs,
+    // and macOS decides which hardware encoder it uses.
+    std::cout << "[gpu] macOS: VideoToolbox picks the hardware encoder "
+                 "(Apple Silicon / AMD / Intel)\n";
+#else
     std::cout << "[gpu] NVIDIA: " << (gpu.nvidia ? "yes" : "no")
               << ", Intel: " << (gpu.intel ? "yes" : "no");
     if (!gpu.intel_render_node.empty()) std::cout << " (" << gpu.intel_render_node << ")";
     if (!gpu.known) std::cout << " [detection unavailable, trying everything]";
     std::cout << "\n";
+#endif
     vaapi_node_ = gpu.intel_render_node;
 
     // ---- 2. Build the try-order: NVIDIA first, then Intel, then CPU -------
@@ -41,12 +49,13 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps) {
     add("h264_videotoolbox");
 #else
     if (gpu.nvidia) add("h264_nvenc");
-    if (gpu.intel) {
 #ifdef PLATFORM_LINUX
-        add("h264_vaapi");              // the usual Intel route on Linux
+    // VAAPI is the non-NVIDIA route on Linux (Intel via i965, AMD via Mesa).
+    // CHANGED: tried on every system without NVIDIA, not only when an Intel GPU
+    // was detected, and on hybrid Intel+NVIDIA machines as fallback behind NVENC.
+    if (gpu.intel || !gpu.nvidia) add("h264_vaapi");
 #endif
-        add("h264_qsv");
-    }
+    if (gpu.intel) add("h264_qsv");
 #ifdef PLATFORM_WINDOWS
     add("h264_amf");                    // AMD, Windows only
 #endif
@@ -60,7 +69,8 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps) {
     // ---- 3. Use the first encoder that really OPENS ------------------------
     // Detection is only a pre-filter. If NVIDIA is detected but NVENC fails
     // (driver without libnvidia-encode, GPU busy, ...), this falls through to
-    // Intel and finally to the CPU.
+    // Intel and finally to the CPU. On a Mac, VideoToolbox failing falls
+    // through to libx264.
     for (const auto& name : names) {
         const AVCodec* codec = avcodec_find_encoder_by_name(name.c_str());
         if (!codec) {
@@ -70,6 +80,17 @@ bool EncoderFFmpeg::init(int width, int height, int fps, int bitrate_kbps) {
         if (open_codec(codec, fps, bitrate_kbps)) {
             std::cout << "[encoder] using " << name << "\n";
             break;
+        }
+        // NEW: some Intel chips (e.g. HD 520) only offer CQP rate control through
+        // VAAPI. Retry once with CQP before giving up on this encoder.
+        if (name == "h264_vaapi" && !force_cqp_) {
+            std::cerr << "[encoder] h264_vaapi: retrying with constant-QP rate control\n";
+            force_cqp_ = true;
+            if (open_codec(codec, fps, bitrate_kbps)) {
+                std::cout << "[encoder] using h264_vaapi (CQP)\n";
+                break;
+            }
+            force_cqp_ = false;
         }
         std::cerr << "[encoder] " << name << " failed, trying next\n";
     }
@@ -130,9 +151,24 @@ bool EncoderFFmpeg::open_codec(const AVCodec* codec, int fps, int bitrate_kbps) 
     ctx_->rc_buffer_size = static_cast<int>(ctx_->bit_rate / std::max(fps, 1) * 4);
 
     if (std::strcmp(codec->name, "h264_vaapi") == 0) {
-        // 1) VAAPI device. CHANGED: the Intel render node found by detect_gpus()
-        // instead of a hardcoded renderD128; nullptr lets libva auto-detect.
+#ifdef PLATFORM_LINUX
+        // NEW: legacy Intel driver (i965, Intel Gen4-Gen9) instead of the newer iHD.
+        // Only when we are really targeting an Intel node (an AMD GPU has no i965),
+        // and the last argument 0 = never override a LIBVA_DRIVER_NAME the user set.
+        // libva reads this variable during vaInitialize, i.e. inside the call below.
+        if (!vaapi_node_.empty()) setenv("LIBVA_DRIVER_NAME", "i965", 0);
+#endif
+
+        // 1) VAAPI device: the Intel render node found by detect_gpus();
+        // nullptr lets libva auto-detect.
         const char* node = vaapi_node_.empty() ? nullptr : vaapi_node_.c_str();
+        // NEW: manual override, same variable name as in your own version
+        if (const char* o = std::getenv("LANSTREAM_VAAPI_DEVICE")) { if (*o) node = o; }
+        if (!force_cqp_) {
+            const char* drv = std::getenv("LIBVA_DRIVER_NAME");
+            std::cout << "[encoder] VAAPI device: " << (node ? node : "auto")
+                      << ", driver: " << (drv ? drv : "auto") << "\n";
+        }
         int r = av_hwdevice_ctx_create(&hw_dev_, AV_HWDEVICE_TYPE_VAAPI, node, nullptr, 0);
         if (r < 0) { log_av("av_hwdevice_ctx_create(vaapi)", r); return fail(); }
 
@@ -154,6 +190,20 @@ bool EncoderFFmpeg::open_codec(const AVCodec* codec, int fps, int bitrate_kbps) 
         // (drop this line if your driver doesn't list VAProfileH264ConstrainedBaseline)
         opt("profile", "constrained_baseline");
 
+        // NEW: power saving off. Low-power encoding (fixed-function "LP" entrypoint)
+        // often only offers CQP; the normal entrypoint also does CBR/VBR.
+        opt("low_power", "0");
+        opt("async_depth", "1");               // no frame queueing -> lowest latency
+
+        if (force_cqp_) {
+            // Constant-QP: bit_rate and the VBV settings must be 0 in this mode.
+            opt("rc_mode", "CQP");
+            av_opt_set_int(ctx_->priv_data, "qp", 24, 0);   // lower = better quality, bigger packets
+            ctx_->bit_rate       = 0;
+            ctx_->rc_max_rate    = 0;
+            ctx_->rc_buffer_size = 0;
+        }
+
     } else if (std::strcmp(codec->name, "h264_nvenc") == 0) {
         // Low-latency NVENC settings
         ctx_->pix_fmt = AV_PIX_FMT_NV12;
@@ -165,10 +215,20 @@ bool EncoderFFmpeg::open_codec(const AVCodec* codec, int fps, int bitrate_kbps) 
         opt("profile", "baseline");
 
     } else if (std::strcmp(codec->name, "h264_qsv") == 0) {
-        // NEW: Intel Quick Sync, fed with system-memory NV12 frames
+        // Intel Quick Sync, fed with system-memory NV12 frames
         ctx_->pix_fmt = AV_PIX_FMT_NV12;
         opt("preset", "veryfast");
         opt("async_depth", "1");               // no frame queueing -> lowest latency
+
+    } else if (std::strcmp(codec->name, "h264_videotoolbox") == 0) {
+        // NEW: macOS VideoToolbox (Apple Silicon, AMD and Intel Macs).
+        // Needs an FFmpeg built with --enable-videotoolbox.
+        ctx_->pix_fmt = AV_PIX_FMT_NV12;
+        opt("realtime",   "1");                // low-latency mode instead of throughput mode
+        opt("prio_speed", "1");                // speed over quality (newer FFmpeg only)
+        opt("allow_sw",   "0");                // no silent software fallback; open() fails
+        // and init() moves on to libx264 instead
+        opt("profile",    "baseline");
 
     } else {
         ctx_->pix_fmt = AV_PIX_FMT_NV12;

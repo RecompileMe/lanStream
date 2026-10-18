@@ -39,6 +39,10 @@ private:
     // NEW: render node of the Intel GPU found by detect_gpus(); empty = let libva choose.
     std::string     vaapi_node_;
 
+    // NEW: set by init() when h264_vaapi refuses bitrate-based rate control;
+    // open_codec() then uses constant-QP (CQP) instead.
+    bool            force_cqp_ = false;
+
     // Input timestamp per pts, so a packet gets the time its frame went IN,
     // even if the encoder buffers a few frames. Indexed by pts % kRing.
     static constexpr int kRing = 64;
