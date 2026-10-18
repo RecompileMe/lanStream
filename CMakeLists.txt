@@ -26,40 +26,19 @@ if(APPLE)
     # Set variables so the rest of your script works seamlessly
     set(FFMPEG_INCS "${PROJECT_SOURCE_DIR}/inc")
     set(FFMPEG_LIBS libavcodec libavutil libswscale)
-elseif (UNIX AND NOT APPLE)
-    add_library(libavcodec SHARED IMPORTED)
-    set_target_properties(libavcodec PROPERTIES
-            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/linux/libavcodec.so"
-            INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
-            )
-
-    add_library(libavutil SHARED IMPORTED)
-    set_target_properties(libavutil PROPERTIES
-            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/linux/libavutil.so"
-            INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
-            )
-
-    add_library(libswscale SHARED IMPORTED)
-    set_target_properties(libswscale PROPERTIES
-            IMPORTED_LOCATION "${PROJECT_SOURCE_DIR}/lib/linux/libswscale.so"
-            INTERFACE_INCLUDE_DIRECTORIES "${PROJECT_SOURCE_DIR}/inc"
-            )
-    # Set variables so the rest of your script works seamlessly
-    set(FFMPEG_INCS "${PROJECT_SOURCE_DIR}/inc")
-    set(FFMPEG_LIBS libavcodec libavutil libswscale)
 endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 
-#if(UNIX AND NOT APPLE)
-#pkg_check_modules(AVCODEC  REQUIRED libavcodec)
-#pkg_check_modules(AVUTIL   REQUIRED libavutil)
-#pkg_check_modules(SWSCALE  REQUIRED libswscale)
-#set(FFMPEG_INCS ${AVCODEC_INCLUDE_DIRS} ${AVUTIL_INCLUDE_DIRS} ${SWSCALE_INCLUDE_DIRS})
-#set(FFMPEG_LIBS ${AVCODEC_LIBRARIES}    ${AVUTIL_LIBRARIES}    ${SWSCALE_LIBRARIES})
-#endif()
+if(UNIX AND NOT APPLE)
+    pkg_check_modules(AVCODEC  REQUIRED libavcodec)
+    pkg_check_modules(AVUTIL   REQUIRED libavutil)
+    pkg_check_modules(SWSCALE  REQUIRED libswscale)
+    set(FFMPEG_INCS ${AVCODEC_INCLUDE_DIRS} ${AVUTIL_INCLUDE_DIRS} ${SWSCALE_INCLUDE_DIRS})
+    set(FFMPEG_LIBS ${AVCODEC_LIBRARIES}    ${AVUTIL_LIBRARIES}    ${SWSCALE_LIBRARIES})
+endif()
 
 if(AVCODEC_LIBRARY_DIRS)
     link_directories(${AVCODEC_LIBRARY_DIRS})
@@ -72,12 +51,13 @@ if(SWSCALE_LIBRARY_DIRS)
 endif()
 
 set(COMMON_SOURCES
-    src/encoder/encoder_ffmpeg.cpp
-    src/transport/udp_sender.cpp
-    src/transport/udp_receiver.cpp
-    src/decoder/decoder_ffmpeg.cpp
-    src/render/renderer_sdl.cpp
-)
+        src/encoder/encoder_ffmpeg.cpp
+        src/encoder/gpu_detect.cpp
+        src/transport/udp_sender.cpp
+        src/transport/udp_receiver.cpp
+        src/decoder/decoder_ffmpeg.cpp
+        src/render/renderer_sdl.cpp
+        )
 
 if(WIN32)
     set(PLATFORM_CAPTURE src/capture/capture_dxgi.cpp)
@@ -93,8 +73,8 @@ elseif(APPLE)
     find_library(FW_IOSURFACE     IOSurface      REQUIRED)
     find_library(FW_APPKIT        AppKit         REQUIRED)
     set(PLATFORM_LIBS ${FW_FOUNDATION} ${FW_COREGRAPHICS}
-                      ${FW_COREVIDEO} ${FW_COREMEDIA} ${FW_SCREENCAPTUREKIT}
-                      ${FW_IOSURFACE} ${FW_APPKIT})
+            ${FW_COREVIDEO} ${FW_COREMEDIA} ${FW_SCREENCAPTUREKIT}
+            ${FW_IOSURFACE} ${FW_APPKIT})
     add_compile_definitions(PLATFORM_MACOS)
 else()
     set(PLATFORM_CAPTURE src/capture/capture_x11.cpp)
@@ -109,7 +89,7 @@ macro(make_target name main_file)
     add_executable(${name} ${main_file} ${COMMON_SOURCES} ${PLATFORM_CAPTURE})
     target_include_directories(${name} PRIVATE src ${FFMPEG_INCS} ${SDL2_INCLUDE_DIRS})
     target_link_libraries(${name}
-        ${FFMPEG_LIBS} ${SDL2_LIBRARIES} ${PLATFORM_LIBS} Threads::Threads)
+            ${FFMPEG_LIBS} ${SDL2_LIBRARIES} ${PLATFORM_LIBS} Threads::Threads)
 endmacro()
 
 make_target(sender   src/sender_main.cpp)
