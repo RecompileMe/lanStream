@@ -48,7 +48,6 @@ void UdpSender::send(const EncodedPacketPtr& pkt)
         size_t csz    = std::min<size_t>(MAX_PAYLOAD, total - offset);
 
         PacketHeader hdr{};
-        hdr.magic        = PACKET_MAGIC;
         hdr.frame_id     = pkt->frame_id;
         hdr.timestamp_us = pkt->timestamp_us;
         hdr.chunk_index  = (uint16_t)ci;
