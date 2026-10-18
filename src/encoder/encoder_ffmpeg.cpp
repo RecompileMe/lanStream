@@ -1,8 +1,11 @@
-#include "encoder_ffmpeg.hpp"
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
 #include <string>
+#include "encoder_ffmpeg.hpp"
+#ifndef AV_ERROR_MAX_STRING_SIZE
+#define AV_ERROR_MAX_STRING_SIZE 64
+#endif
 
 static std::string av_err(int e)
 {
