@@ -99,23 +99,25 @@ void UdpReceiver::recv_loop(PacketCallback cb)
         if (last_id_ != UINT32_MAX && hdr.frame_id <= last_id_)
             continue;
 
-        auto& a = asm_[hdr.frame_id];
-        a.frame_id = hdr.frame_id;
-        a.ts       = hdr.timestamp_us;
-        a.keyframe = hdr.is_keyframe;
-        a.expect   = hdr.chunk_count;
-        a.chunks[hdr.chunk_index].assign(buf + sizeof(hdr),
+        auto& frame_asm = asm_[hdr.frame_id];
+        frame_asm.frame_id = hdr.frame_id;
+        frame_asm.ts       = hdr.timestamp_us;
+        frame_asm.keyframe = hdr.is_keyframe;
+        frame_asm.expect   = hdr.chunk_count;
+        frame_asm.chunks[hdr.chunk_index].assign(buf + sizeof(hdr),
                                          buf + sizeof(hdr) + hdr.payload_size);
 
-        if (!a.complete())
+        if (frame_asm.complete())
+            std::cout << "Frame assembly complete!" << std::endl;
+        else
             continue;
 
-        auto ep = std::make_shared<EncodedPacket>();
-        ep->frame_id     = a.frame_id;
-        ep->timestamp_us = a.ts;
-        ep->is_keyframe  = a.keyframe != 0;
-        for (auto& [idx, data] : a.chunks)
-            ep->data.insert(ep->data.end(), data.begin(), data.end());
+        auto encoded_packet = std::make_shared<EncodedPacket>();
+        encoded_packet->frame_id     = frame_asm.frame_id;
+        encoded_packet->timestamp_us = frame_asm.ts;
+        encoded_packet->is_keyframe  = frame_asm.keyframe != 0;
+        for (auto& [idx, data] : frame_asm.chunks)
+            encoded_packet->data.insert(encoded_packet->data.end(), data.begin(), data.end());
 
         last_id_ = hdr.frame_id;
         for (auto it = asm_.begin(); it != asm_.end();)
@@ -125,6 +127,6 @@ void UdpReceiver::recv_loop(PacketCallback cb)
             else
                 ++it;
         }
-        cb(std::move(ep));
+        cb(std::move(encoded_packet));
     }
 }

@@ -12,12 +12,16 @@
 static std::atomic<bool> g_run{true};
 static void on_signal(int) { g_run = false; }
 
-void start_streaming(std::string& str_port)
+void start_playback(std::string& str_port)
 {
-
     uint16_t port = std::stoi(str_port);
     UdpReceiver udp;
     DecoderFFmpeg decoder;
+
+    // Rendering must take place on the main thread (required by SDL2)
+    RendererSDL renderer;
+    bool inited = false;
+    uint32_t cnt = 0;
 
     signal(SIGINT,  on_signal);
     signal(SIGTERM, on_signal);
@@ -46,11 +50,6 @@ void start_streaming(std::string& str_port)
                       fq.push(f);
                   });
               });
-
-    // Rendering must take place on the main thread (required by SDL2)
-    RendererSDL renderer;
-    bool inited = false;
-    uint32_t cnt = 0;
 
     while (g_run)
     {
@@ -109,7 +108,7 @@ int main(int argc, char **argv)
     else
     {
         std::string port = *++argv;
-        start_streaming(port);
+        start_playback(port);
         return 0;
     }
 }
