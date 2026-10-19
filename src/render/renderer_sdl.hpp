@@ -7,13 +7,13 @@ class RendererSDL : public IRenderer
 {
 public:
     ~RendererSDL() override;
-    bool init(int w, int h, const char* title = "LanStream") override;
-    bool render(RawFramePtr frame)                            override;
-    bool poll_events()                                        override;
+    bool init(int width, int height, const std::string& title) override;
+    bool render(RawFramePtr frame_ptr) override;
+    bool poll_events() override;
 private:
     void cleanup();
     SDL_Window*   window_   = nullptr;
     SDL_Renderer* renderer_ = nullptr;
     SDL_Texture*  texture_  = nullptr;
-    int w_ = 0, h_ = 0;
+    int width_ = 0, height_ = 0;
 };

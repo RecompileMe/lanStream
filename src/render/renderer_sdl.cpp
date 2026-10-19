@@ -2,15 +2,15 @@
 #include "renderer_sdl.hpp"
 #include <iostream>
 
-bool RendererSDL::init(int w, int h, const char* title)
+bool RendererSDL::init(int width, int height, const std::string& title)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
         return false;
 
-    w_ = w; h_ = h;
-    window_ = SDL_CreateWindow(title,
+    width_ = width; height_ = height;
+    window_ = SDL_CreateWindow(title.c_str(),
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        w, h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+        width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
     if (!window_)
         return false;
@@ -22,26 +22,30 @@ bool RendererSDL::init(int w, int h, const char* title)
 
     texture_ = SDL_CreateTexture(renderer_,
         SDL_PIXELFORMAT_BGRA32,
-        SDL_TEXTUREACCESS_STREAMING, w, h);
-    return texture_ != nullptr;
+        SDL_TEXTUREACCESS_STREAMING, width, height);
+
+    if (texture_)
+        return true;
+    else
+        return false;
 }
 
-bool RendererSDL::render(RawFramePtr f)
+bool RendererSDL::render(RawFramePtr frame_ptr)
 {
-    if (!f)
+    if (!frame_ptr)
         return true;
 
     // Rebuild the texture when the resolution changes
-    if (f->width != w_ || f->height != h_)
+    if (frame_ptr->width != width_ || frame_ptr->height != height_)
     {
-        w_ = f->width; h_ = f->height;
+        width_ = frame_ptr->width; height_ = frame_ptr->height;
         SDL_DestroyTexture(texture_);
         texture_ = SDL_CreateTexture(renderer_,
             SDL_PIXELFORMAT_BGRA32,
-            SDL_TEXTUREACCESS_STREAMING, w_, h_);
-        SDL_SetWindowSize(window_, w_, h_);
+            SDL_TEXTUREACCESS_STREAMING, width_, height_);
+        SDL_SetWindowSize(window_, width_, height_);
     }
-    SDL_UpdateTexture(texture_, nullptr, f->data.data(), f->linesize);
+    SDL_UpdateTexture(texture_, nullptr, frame_ptr->data.data(), frame_ptr->linesize);
     SDL_RenderClear(renderer_);
     SDL_RenderCopy(renderer_, texture_, nullptr, nullptr);
     SDL_RenderPresent(renderer_);
@@ -50,15 +54,14 @@ bool RendererSDL::render(RawFramePtr f)
 
 bool RendererSDL::poll_events()
 {
-    SDL_Event e;
-    while (SDL_PollEvent(&e))
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
     {
-        if (e.type == SDL_QUIT)
+        if (event.type == SDL_QUIT)
             return false;
 
-        if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)
+        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)
             return false;
-
     }
     return true;
 }

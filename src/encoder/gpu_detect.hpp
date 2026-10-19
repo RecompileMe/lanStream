@@ -4,7 +4,8 @@
 // Result of looking at the machine's GPUs. This is only a PRE-FILTER: it decides
 // which encoders are worth trying and in which order. Whether an encoder really
 // works is still decided by avcodec_open2() in EncoderFFmpeg::init().
-struct GpuInfo {
+struct GpuInfo
+{
     bool known  = false;   // false = could not inspect the system -> assume anything may work
     bool nvidia = false;
     bool intel  = false;

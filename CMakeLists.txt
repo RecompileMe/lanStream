@@ -28,6 +28,7 @@ if(APPLE)
     # Set variables so the rest of your script works seamlessly
     set(FFMPEG_INCS "${PROJECT_SOURCE_DIR}/inc")
     set(FFMPEG_LIBS libavcodec libavutil libswscale ${VIDEOTOOLBOX_FRAMEWORK})
+
 elseif (UNIX AND NOT APPLE)
     add_library(libavcodec SHARED IMPORTED)
     set_target_properties(libavcodec PROPERTIES
@@ -60,8 +61,6 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
-
-
 
 #if(UNIX AND NOT APPLE)
 #    pkg_check_modules(AVCODEC  REQUIRED libavcodec)
