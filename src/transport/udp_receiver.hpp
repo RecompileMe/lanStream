@@ -14,10 +14,10 @@ public:
     using PacketCallback = std::function<void(EncodedPacketPtr)>;
     ~UdpReceiver();
     bool init(uint16_t& port);
-    bool start(PacketCallback cb);
+    bool start(PacketCallback callback);
     void stop();
 private:
-    void recv_loop(PacketCallback cb);
+    void recv_loop(PacketCallback callback);
 
     struct FrameAsm
             {

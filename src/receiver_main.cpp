@@ -29,7 +29,7 @@ void start_playback(std::string& str_port)
     bool is_udp_initialized = udp.init(port);
     bool is_decoder_initialized = decoder.init();
 
-    if (is_udp_initialized || is_decoder_initialized)
+    if (is_udp_initialized && is_decoder_initialized)
             std::cout << "port = " << port << std::endl;
     else
     {

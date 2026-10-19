@@ -22,7 +22,7 @@ bool UdpReceiver::init(uint16_t& port)
     if (sock_ < 0)
         return false;
 
-    // Set a receive timeout to prevent recv from blocking after stop()
+    // Set a receiving timeout to prevent recv from blocking after stop()
 #ifdef _WIN32
     DWORD tv = 100;
     setsockopt(sock_, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(tv));
@@ -51,12 +51,12 @@ UdpReceiver::~UdpReceiver()
     stop();
 }
 
-bool UdpReceiver::start(PacketCallback cb)
+bool UdpReceiver::start(PacketCallback callback)
 {
     running_ = true;
-    thread_ = std::thread([this, cb]
+    thread_ = std::thread([this, callback]
             {
-        recv_loop(cb);
+        recv_loop(callback);
             });
     return true;
 }
@@ -67,7 +67,11 @@ void UdpReceiver::stop()
     if (thread_.joinable())
         thread_.join();
 #ifdef _WIN32
-    if (sock_ >= 0) { closesocket(sock_); sock_ = -1; }
+    if (sock_ >= 0)
+    {
+        closesocket(sock_);
+        sock_ = -1;
+    }
 #else
     if (sock_ >= 0)
     {
@@ -79,36 +83,39 @@ void UdpReceiver::stop()
 
 bool UdpReceiver::FrameAsm::complete() const
 {
-    return expect > 0 && chunks.size() == expect;
+    if ((expect > 0) && (chunks.size() == expect))
+        return true;
+    else
+        return false;
 }
 
-void UdpReceiver::recv_loop(PacketCallback cb)
+void UdpReceiver::recv_loop(PacketCallback callback)
 {
-    static uint8_t buf[65536];
+    static uint8_t buffer[65536];
+    PacketHeader header{};
     while (running_)
     {
-        int n = (int)::recv(sock_, (char*)buf, sizeof(buf), 0);
-        if (n < (int)sizeof(PacketHeader))
+        int bytes_read = (int)::recv(sock_, (char*)buffer, sizeof(buffer), 0);
+        if (bytes_read < (int)sizeof(PacketHeader))
             continue;
 
-        PacketHeader hdr{};
-        memcpy(&hdr, buf, sizeof(hdr));
-        if (hdr.magic != PACKET_MAGIC)
+        memcpy(&header, buffer, sizeof(header));
+        if (header.magic != PACKET_MAGIC)
             continue;
         // Discard expired frames to ensure low latency
-        if (last_id_ != UINT32_MAX && hdr.frame_id <= last_id_)
+        if (last_id_ != UINT32_MAX && header.frame_id <= last_id_)
             continue;
 
-        auto& frame_asm = asm_[hdr.frame_id];
-        frame_asm.frame_id = hdr.frame_id;
-        frame_asm.ts       = hdr.timestamp_us;
-        frame_asm.keyframe = hdr.is_keyframe;
-        frame_asm.expect   = hdr.chunk_count;
-        frame_asm.chunks[hdr.chunk_index].assign(buf + sizeof(hdr),
-                                         buf + sizeof(hdr) + hdr.payload_size);
+        auto& frame_asm = asm_[header.frame_id];
+        frame_asm.frame_id = header.frame_id;
+        frame_asm.ts       = header.timestamp_us;
+        frame_asm.keyframe = header.is_keyframe;
+        frame_asm.expect   = header.chunk_count;
+        frame_asm.chunks[header.chunk_index].assign(buffer + sizeof(header),
+                                                    buffer + sizeof(header) + header.payload_size);
 
         if (frame_asm.complete())
-            std::cout << "Frame assembly complete!" << std::endl;
+            std::cout << "Frame assembly successful!" << std::endl;
         else
             continue;
 
@@ -119,7 +126,7 @@ void UdpReceiver::recv_loop(PacketCallback cb)
         for (auto& [idx, data] : frame_asm.chunks)
             encoded_packet->data.insert(encoded_packet->data.end(), data.begin(), data.end());
 
-        last_id_ = hdr.frame_id;
+        last_id_ = header.frame_id;
         for (auto it = asm_.begin(); it != asm_.end();)
         {
             if (it->first <= last_id_)
@@ -127,6 +134,6 @@ void UdpReceiver::recv_loop(PacketCallback cb)
             else
                 ++it;
         }
-        cb(std::move(encoded_packet));
+        callback(std::move(encoded_packet));
     }
 }

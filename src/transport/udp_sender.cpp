@@ -31,34 +31,40 @@ bool UdpSender::init(const std::string& ip, uint16_t port)
     addr.sin_family = AF_INET;
     addr.sin_port   = htons(port);
     inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
-    return ::connect(sock_, (sockaddr*)&addr, sizeof(addr)) == 0;
+    if (::connect(sock_, (sockaddr*)&addr, sizeof(addr)) == 0)
+        return true;
+    else
+        return false;
 }
 
-void UdpSender::send(const EncodedPacketPtr& pkt)
+void UdpSender::send(const EncodedPacketPtr& pkt) const
 {
     if (!pkt || sock_ < 0)
         return;
     const size_t total  = pkt->data.size();
     const size_t chunks = (total + MAX_PAYLOAD - 1) / MAX_PAYLOAD;
     static uint8_t buf[UDP_MTU + sizeof(PacketHeader)];
+    PacketHeader header{};
 
     for (size_t ci = 0; ci < chunks; ++ci)
     {
         size_t offset = ci * MAX_PAYLOAD;
         size_t csz    = std::min<size_t>(MAX_PAYLOAD, total - offset);
 
-        PacketHeader hdr{};
-        hdr.magic        = PACKET_MAGIC;
-        hdr.frame_id     = pkt->frame_id;
-        hdr.timestamp_us = pkt->timestamp_us;
-        hdr.chunk_index  = (uint16_t)ci;
-        hdr.chunk_count  = (uint16_t)chunks;
-        hdr.payload_size = (uint32_t)csz;
-        hdr.is_keyframe  = pkt->is_keyframe ? 1 : 0;
+        header.magic        = PACKET_MAGIC;
+        header.frame_id     = pkt->frame_id;
+        header.timestamp_us = pkt->timestamp_us;
+        header.chunk_index  = (uint16_t)ci;
+        header.chunk_count  = (uint16_t)chunks;
+        header.payload_size = (uint32_t)csz;
+        if (pkt->is_keyframe)
+            header.is_keyframe = 1;
+        else
+            header.is_keyframe = 0;
 
-        memcpy(buf,              &hdr,                         sizeof(hdr));
-        memcpy(buf + sizeof(hdr), pkt->data.data() + offset,  csz);
-        ::send(sock_, (char*)buf, sizeof(hdr) + csz, 0);
+        memcpy(buf, &header, sizeof(header));
+        memcpy(buf + sizeof(header), pkt->data.data() + offset, csz);
+        ::send(sock_, (char*)buf, sizeof(header) + csz, 0);
     }
 }
 

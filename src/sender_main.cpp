@@ -22,6 +22,8 @@ void start_streaming(std::vector<std::string>& args)
     int fps = std::stoi(*it);
     it++;
     int bitrate = std::stoi(*it);
+    EncoderFFmpeg encoder;
+    UdpSender udp;
 
     signal(SIGINT,  on_signal);
     signal(SIGTERM, on_signal);
@@ -36,16 +38,14 @@ void start_streaming(std::vector<std::string>& args)
     int width = capture->width(), height = capture->height();
     std::cout << "Sender: " << width << "x" << height
               << " -> " << ip << ":" << port
-              << " fps=" << fps << " bitrate=" << bitrate << "kbps\n";
+              << " fps=" << fps << " bitrate=" << bitrate << "kbps" << std::endl;
 
-    EncoderFFmpeg encoder;
     if (!encoder.init(width, height, fps, bitrate))
     {
         std::cerr << "encoder init failed" << std::endl;
         return;
     }
 
-    UdpSender udp;
     if (!udp.init(ip, port))
     {
         std::cerr << "udp sender init failed" << std::endl;

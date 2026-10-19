@@ -9,7 +9,7 @@ class UdpSender
 public:
     ~UdpSender();
     bool init(const std::string& ip, uint16_t port);
-    void send(const EncodedPacketPtr& pkt);
+    void send(const EncodedPacketPtr& pkt) const;
     void close();
 private:
     int sock_ = -1;
