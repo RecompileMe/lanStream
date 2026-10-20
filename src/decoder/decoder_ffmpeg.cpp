@@ -231,24 +231,17 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
         {
             // Override the render node with e.g. LANSTREAM_VAAPI_DEVICE=/dev/dri/renderD129.
             // Otherwise, use the Intel node found by detect_gpus(); nullptr lets libva choose.
-            std::string node{};
-            if (vaapi_node_.empty())
-                node = "";
-            else
-                node = vaapi_node_;
+            std::string node = vaapi_node_;
 
-            const char* env = std::getenv("LANSTREAM_VAAPI_DEVICE");
-                if (!env)
-                    env = nullptr;
-                else
-                    node = *env;
+            if (const char* env = std::getenv("LANSTREAM_VAAPI_DEVICE"))
+                    node = env;
 #ifdef PLATFORM_LINUX
             // Legacy Intel driver (i965) like in the encoder: only for an Intel node, and
             // never override a LIBVA_DRIVER_NAME the user set themselves.
             if (!vaapi_node_.empty())
                 setenv("LIBVA_DRIVER_NAME", "i965", 0);
 #endif
-            const char* drv = std::getenv("LIBVA_DRIVER_NAME");
+            const char* driver_name = std::getenv("LIBVA_DRIVER_NAME");
             std::cout << "[decoder] VAAPI device: ";
 
             if (node.empty())
@@ -257,10 +250,11 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
                 std::cout << node;
 
             std::cout << ", driver: ";
-            if (!drv)
+
+            if (!driver_name)
                 std::cout << "auto" << std::endl;
             else
-                std::cout << drv << std::endl;
+                std::cout << driver_name << std::endl;
 
             if (!setup_hwaccel(AV_HWDEVICE_TYPE_VAAPI, node.c_str(), AV_PIX_FMT_VAAPI))
                 return false;
@@ -275,11 +269,11 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
             break;
     }
 
-    const int ret = avcodec_open2(av_codec_context_, codec, nullptr);
+    const int return_status = avcodec_open2(av_codec_context_, codec, nullptr);
 
-    if (ret < 0)
+    if (return_status < 0)
     {
-        std::cerr << "[decoder] avcodec_open2 failed: " << av_err(ret) << std::endl;
+        std::cerr << "[decoder] avcodec_open2 failed: " << av_err(return_status) << std::endl;
         return false;
     }
 

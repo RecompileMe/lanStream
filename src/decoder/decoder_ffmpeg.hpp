@@ -48,7 +48,7 @@ private:
     SwsContext*     sws_         = nullptr;
     int             sw_ = 0, sh_ = 0;
 
-    DecoderType         type_        = DecoderType::Software;
+    DecoderType     type_        = DecoderType::Software;
     AVPixelFormat   hardware_pixel_format_  = AV_PIX_FMT_NONE;  // surface format of the active hwaccel
     std::string     codec_;                          // which candidate won, for the log
     std::string     vaapi_node_;                     // Intel render node from detect_gpus()
