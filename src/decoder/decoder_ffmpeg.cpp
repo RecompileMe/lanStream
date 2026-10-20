@@ -296,14 +296,14 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
         return false;
 }
 
-void DecoderFFmpeg::decode(EncodedPacketPtr ep, FrameCallback cb)
+void DecoderFFmpeg::decode(EncodedPacketPtr packet_ptr, FrameCallback callback)
 {
     // NEW: init() may have failed (or not run); never touch the null members then.
-    if (!ep || !codec_context_ || !av_packet_ || !av_frame_)
+    if (!packet_ptr || !codec_context_ || !av_packet_ || !av_frame_)
         return;
 
-    av_packet_->data = const_cast<uint8_t*>(ep->data.data());
-    av_packet_->size = static_cast<int>(ep->data.size());
+    av_packet_->data = const_cast<uint8_t*>(packet_ptr->data.data());
+    av_packet_->size = static_cast<int>(packet_ptr->data.size());
 
     if (avcodec_send_packet(codec_context_, av_packet_) < 0)
         return;
@@ -365,7 +365,7 @@ void DecoderFFmpeg::decode(EncodedPacketPtr ep, FrameCallback cb)
         }
 
         auto frame = std::make_shared<RawFrame>();
-        frame->timestamp_us = ep->timestamp_us;
+        frame->timestamp_us = packet_ptr->timestamp_us;
         frame->width = width;
         frame->height = height;
         frame->linesize = width * 4;
@@ -378,7 +378,7 @@ void DecoderFFmpeg::decode(EncodedPacketPtr ep, FrameCallback cb)
         sws_scale(sws_, frame_ptr->data, frame_ptr->linesize, 0, height, dst, dst_ls);
 
         av_frame_unref(av_frame_);   // give the GPU surface back to the decoder's pool
-        cb(std::move(frame));
+        callback(std::move(frame));
     }
 }
 

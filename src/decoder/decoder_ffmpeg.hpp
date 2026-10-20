@@ -33,7 +33,7 @@ class DecoderFFmpeg : public IDecoder
 public:
     ~DecoderFFmpeg() override;
     bool init() override;
-    void decode(EncodedPacketPtr pkt, FrameCallback cb) override;
+    void decode(EncodedPacketPtr packet_ptr, FrameCallback callback) override;
 private:
     bool open_codec(const AVCodec* codec, DecoderType decoderType);
     // Create the hardware device and make the decoder output `pix_fmt` surfaces.
