@@ -137,12 +137,17 @@ bool DecoderFFmpeg::init()
         codecs_list.push_back("h264_cuvid");                   // NVDEC
 #ifdef PLATFORM_LINUX
     // VAAPI is the non-NVIDIA route on Linux (Intel via i965, AMD via Mesa).
-    if (gpu.intel || !gpu.nvidia)
-        codecs_list.push_back("h264_vaapi");
+    if (gpu.intel)
+    {
+        codecs_list.push_back("h264_qsv");                     // Try QSV first (if compiled in FFmpeg)
+        codecs_list.push_back("h264_vaapi");                   // Fallback to VAAPI
+    }
+    else if (!gpu.nvidia)
+        codecs_list.push_back("h264_vaapi");                   // AMD / other VAAPI
 #endif
 #ifdef PLATFORM_WINDOWS
     if (gpu.intel)
-        add("h264_qsv");
+        codecs_list.push_back("h264_qsv");
 #endif
 #endif
     codecs_list.push_back("h264");                             // CPU, always last
