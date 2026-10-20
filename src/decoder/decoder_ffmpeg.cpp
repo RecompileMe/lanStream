@@ -69,13 +69,13 @@ bool codec_from_name(const std::string &name, CodecType &output)
 // If the driver cannot decode this stream (unsupported profile, hwaccel setup
 // failed, ...) that format is missing from the list, and we fall back to normal
 // software decoding instead of failing.
-AVPixelFormat get_hw_format(AVCodecContext *ctx, const AVPixelFormat *pix_fmts)
+AVPixelFormat get_hw_format(AVCodecContext *codec_context, const AVPixelFormat *pixel_format)
 {
-    const auto want = static_cast<AVPixelFormat>(reinterpret_cast<intptr_t>(ctx->opaque));
+    const auto want = static_cast<AVPixelFormat>(reinterpret_cast<intptr_t>(codec_context->opaque));
 
-    for (const AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; ++p)
+    for (const AVPixelFormat *ptr = pixel_format; *ptr != AV_PIX_FMT_NONE; ++ptr)
     {
-        if (*p == want)
+        if (*ptr == want)
             return want;
     }
 
@@ -86,7 +86,7 @@ AVPixelFormat get_hw_format(AVCodecContext *ctx, const AVPixelFormat *pix_fmts)
         warned = true;
         std::cerr << "[decoder] GPU cannot decode this stream, falling back to software" << std::endl;
     }
-    return avcodec_default_get_format(ctx, pix_fmts);
+    return avcodec_default_get_format(codec_context, pixel_format);
 }
 
 bool DecoderFFmpeg::init()
