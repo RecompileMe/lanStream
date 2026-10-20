@@ -114,9 +114,7 @@ void UdpReceiver::recv_loop(PacketCallback callback)
         frame_asm.chunks[header.chunk_index].assign(buffer + sizeof(header),
                                                     buffer + sizeof(header) + header.payload_size);
 
-        if (frame_asm.complete())
-            std::cout << "Frame assembly successful!" << std::endl;
-        else
+        if (!frame_asm.complete())
             continue;
 
         auto encoded_packet = std::make_shared<EncodedPacket>();
