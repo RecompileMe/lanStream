@@ -69,9 +69,9 @@ bool codec_from_name(const std::string &name, CodecType &output)
 // If the driver cannot decode this stream (unsupported profile, hwaccel setup
 // failed, ...) that format is missing from the list, and we fall back to normal
 // software decoding instead of failing.
-AVPixelFormat get_hw_format(AVCodecContext *codec_context, const AVPixelFormat *pixel_format)
+AVPixelFormat get_hw_format(AVCodecContext *av_codec_context, const AVPixelFormat *pixel_format)
 {
-    const auto want = static_cast<AVPixelFormat>(reinterpret_cast<intptr_t>(codec_context->opaque));
+    const auto want = static_cast<AVPixelFormat>(reinterpret_cast<intptr_t>(av_codec_context->opaque));
 
     for (const AVPixelFormat *ptr = pixel_format; *ptr != AV_PIX_FMT_NONE; ++ptr)
     {
@@ -86,7 +86,7 @@ AVPixelFormat get_hw_format(AVCodecContext *codec_context, const AVPixelFormat *
         warned = true;
         std::cerr << "[decoder] GPU cannot decode this stream, falling back to software" << std::endl;
     }
-    return avcodec_default_get_format(codec_context, pixel_format);
+    return avcodec_default_get_format(av_codec_context, pixel_format);
 }
 
 bool DecoderFFmpeg::init()
@@ -113,6 +113,7 @@ bool DecoderFFmpeg::init()
         std::cout << "The gpu render node is empty." << std::endl;
     else
         std::cout << "[" << gpu.intel_render_node << "]" << std::endl;
+
     if (gpu.known)
         std::cout << "GPU detected, proceeding next." << std::endl;
     else
@@ -201,13 +202,13 @@ bool DecoderFFmpeg::setup_hwaccel(AVHWDeviceType type, const char *device, AVPix
         return false;
     }
 
-    codec_context_->hw_device_ctx = av_buffer_ref(hardware_device_);
-    if (!codec_context_->hw_device_ctx)
+    av_codec_context_->hw_device_ctx = av_buffer_ref(hardware_device_);
+    if (!av_codec_context_->hw_device_ctx)
         return false;
 
     hardware_pixel_format_ = pixel_format;
-    codec_context_->opaque = reinterpret_cast<void *>(static_cast<intptr_t>(pixel_format));
-    codec_context_->get_format = get_hw_format;
+    av_codec_context_->opaque = reinterpret_cast<void *>(static_cast<intptr_t>(pixel_format));
+    av_codec_context_->get_format = get_hw_format;
     return true;
 }
 
@@ -216,13 +217,13 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
     type_ = decoder_type;
     hardware_pixel_format_ = AV_PIX_FMT_NONE;
 
-    codec_context_ = avcodec_alloc_context3(codec);
-    if (!codec_context_)
+    av_codec_context_ = avcodec_alloc_context3(codec);
+    if (!av_codec_context_)
         return false;
 
-    codec_context_->flags |= AV_CODEC_FLAG_LOW_DELAY;
-    codec_context_->flags2 |= AV_CODEC_FLAG2_FAST;
-    codec_context_->thread_count = 1; // Lowest single-thread latency
+    av_codec_context_->flags |= AV_CODEC_FLAG_LOW_DELAY;
+    av_codec_context_->flags2 |= AV_CODEC_FLAG2_FAST;
+    av_codec_context_->thread_count = 1; // Lowest single-thread latency
 
     switch (decoder_type)
     {
@@ -274,7 +275,7 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
             break;
     }
 
-    const int ret = avcodec_open2(codec_context_, codec, nullptr);
+    const int ret = avcodec_open2(av_codec_context_, codec, nullptr);
 
     if (ret < 0)
     {
@@ -299,18 +300,18 @@ bool DecoderFFmpeg::open_codec(const AVCodec *codec, DecoderType decoder_type)
 void DecoderFFmpeg::decode(EncodedPacketPtr packet_ptr, FrameCallback callback)
 {
     // NEW: init() may have failed (or not run); never touch the null members then.
-    if (!packet_ptr || !codec_context_ || !av_packet_ || !av_frame_)
+    if (!packet_ptr || !av_codec_context_ || !av_packet_ || !av_frame_)
         return;
 
     av_packet_->data = const_cast<uint8_t*>(packet_ptr->data.data());
     av_packet_->size = static_cast<int>(packet_ptr->data.size());
 
-    if (avcodec_send_packet(codec_context_, av_packet_) < 0)
+    if (avcodec_send_packet(av_codec_context_, av_packet_) < 0)
         return;
 
     while (true)
     {
-        const int ret = avcodec_receive_frame(codec_context_, av_frame_);
+        const int ret = avcodec_receive_frame(av_codec_context_, av_frame_);
         if (ret < 0)    // EAGAIN (needs more input), EOF or a real error
             break;
 
@@ -399,8 +400,8 @@ void DecoderFFmpeg::cleanup()
         av_frame_free(&sw_frame_);
     if (av_frame_)
         av_frame_free(&av_frame_);       // before ctx_: GPU surfaces belong to the decoder's pool
-    if (codec_context_)
-        avcodec_free_context(&codec_context_);
+    if (av_codec_context_)
+        avcodec_free_context(&av_codec_context_);
     if (hardware_device_)
         av_buffer_unref(&hardware_device_);
 

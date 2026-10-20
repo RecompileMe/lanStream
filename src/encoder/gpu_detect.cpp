@@ -59,9 +59,8 @@ GpuInfo detect_gpus()
             {
                 const std::string node = std::string("/dev/dri/") + entry->d_name;
                 // readdir order is arbitrary; take the lowest-numbered Intel node
-                if (current_gpu.intel_render_node.empty() || node < current_gpu.intel_render_node) {
+                if (current_gpu.intel_render_node.empty() || node < current_gpu.intel_render_node)
                     current_gpu.intel_render_node = node;
-                }
                 current_gpu.intel = true;
             }
         }
@@ -71,7 +70,8 @@ GpuInfo detect_gpus()
 
     // Could not inspect anything (Windows, macOS, or a container without sysfs):
     // don't guess "no GPU", let the open-and-fall-through logic in init() decide.
-    if (!current_gpu.known) {
+    if (!current_gpu.known)
+    {
         current_gpu.nvidia = true;
         current_gpu.intel  = true;
     }

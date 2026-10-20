@@ -3,7 +3,8 @@
 #include <array>
 #include <cstdint>
 #include <string>
-extern "C" {
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 #include <libavutil/error.h>
@@ -11,20 +12,22 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-class EncoderFFmpeg : public IEncoder {
+class EncoderFFmpeg : public IEncoder
+{
 public:
-    ~EncoderFFmpeg() override { cleanup(); }
-    bool init(int width, int height,
-              int fps = 60, int bitrate_kbps = 8000) override;
+    ~EncoderFFmpeg() override
+    {
+        cleanup();
+    }
+    bool init(int width, int height, int fps, int bitrate_kbps) override;
     void encode(RawFramePtr frame, PacketCallback cb) override;
     void flush(PacketCallback cb)                     override;
 private:
-    bool open_codec(const AVCodec* codec,             // configure + open ONE encoder
-                    int fps, int bitrate_kbps);
+    bool open_codec(const AVCodec* codec, int fps, int bitrate_kbps);
     void cleanup();
     void do_encode(AVFrame* frame, PacketCallback& cb);
 
-    AVCodecContext* ctx_     = nullptr;
+    AVCodecContext* av_codec_context_     = nullptr;
     AVFrame*        avf_     = nullptr;   // CPU frame (NV12)
     AVFrame*        hw_frm_  = nullptr;   // GPU surface, VAAPI only
     AVBufferRef*    hw_dev_  = nullptr;   // VAAPI device

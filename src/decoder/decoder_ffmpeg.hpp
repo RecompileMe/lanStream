@@ -40,7 +40,7 @@ private:
     bool setup_hwaccel(AVHWDeviceType type, const char* device, AVPixelFormat pixel_format);
     void cleanup();
 
-    AVCodecContext* codec_context_ = nullptr;
+    AVCodecContext* av_codec_context_ = nullptr;
     AVFrame*        av_frame_         = nullptr;   // decoder output (a GPU surface while a hwaccel is active)
     AVFrame*        sw_frame_    = nullptr;   // CPU copy of that GPU surface (hwaccel only)
     AVPacket*       av_packet_         = nullptr;
