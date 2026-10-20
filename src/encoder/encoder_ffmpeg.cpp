@@ -451,6 +451,11 @@ void EncoderFFmpeg::encode(RawFramePtr frame, PacketCallback callback)
         do_encode(av_frame_, callback);
 }
 
+EncoderFFmpeg::~EncoderFFmpeg()
+{
+    cleanup();
+}
+
 void EncoderFFmpeg::flush(PacketCallback cb)
 {
     do_encode(nullptr, cb);

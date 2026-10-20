@@ -15,10 +15,7 @@ extern "C"
 class EncoderFFmpeg : public IEncoder
 {
 public:
-    ~EncoderFFmpeg() override
-    {
-        cleanup();
-    }
+    ~EncoderFFmpeg() override;
     bool init(int width, int height, int fps, int bitrate_kbps) override;
     void encode(RawFramePtr frame, PacketCallback callback) override;
     void flush(PacketCallback callback) override;
