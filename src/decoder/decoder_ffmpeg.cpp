@@ -112,9 +112,9 @@ bool DecoderFFmpeg::init()
     if (gpu.intel_render_node.empty())
         std::cout << "The gpu render node is empty." << std::endl;
     else
-        std::cout << " (" << gpu.intel_render_node << ")";
+        std::cout << "[" << gpu.intel_render_node << "]" << std::endl;
     if (gpu.known)
-        std::cout << "Other GPU detected, proceeding next." << std::endl;
+        std::cout << "GPU detected, proceeding next." << std::endl;
     else
         std::cout << " [detection unavailable, trying everything]" << std::endl;
 #endif
